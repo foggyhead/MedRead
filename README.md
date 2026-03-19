@@ -2,7 +2,7 @@
 
 > Your medicine, in plain language. No medical degree required.
 
-MedRead lets any Indian family upload a photo of a medicine strip, label, or prescription and instantly get a jargon-free explanation — in English or Hindi.
+MedRead lets any Indian family upload a photo of a medicine strip, label, or prescription and instantly get a jargon-free explanation — in 11 Indian languages: English, हिंदी, বাংলা, తెలుగు, मराठी, தமிழ், ગુજરાતી, ಕನ್ನಡ, മലയാളം, ਪੰਜਾਬੀ, and ଓଡ଼ିଆ.
 
 ---
 
