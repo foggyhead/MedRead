@@ -42,11 +42,6 @@ export const metadata: Metadata = {
       "Upload any medicine photo and get a clear, jargon-free explanation instantly.",
     images: ["/og"],
   },
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-    apple: "/logo.svg",
-  },
   robots: {
     index: true,
     follow: true,
