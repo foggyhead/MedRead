@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, X, Loader2, ImageIcon, Sparkles, Search, Stethoscope } from "lucide-react";
 import { scanMedicine, searchMedicine, searchBySymptoms, MedicineResult, SymptomResult } from "@/lib/api";
@@ -32,7 +33,11 @@ const SYMPTOM_LOADING_MESSAGES = [
 type Mode = "photo" | "text" | "symptoms";
 
 export default function Scanner() {
-  const [mode, setMode] = useState<Mode>("photo");
+  const searchParams = useSearchParams();
+  const initialMode = (searchParams.get("mode") as Mode) || "photo";
+  const [mode, setMode] = useState<Mode>(
+    ["photo", "text", "symptoms"].includes(initialMode) ? initialMode : "photo"
+  );
 
   // Photo mode state
   const [file, setFile] = useState<File | null>(null);
