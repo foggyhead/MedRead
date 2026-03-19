@@ -1,3 +1,4 @@
+import sys
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -5,8 +6,13 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from app.config import ALLOWED_ORIGINS, RATE_LIMIT
+from app.config import ALLOWED_ORIGINS, RATE_LIMIT, GEMINI_API_KEY
 from app.routers import scan
+
+# Fail fast if API key is missing
+if not GEMINI_API_KEY:
+    print("ERROR: GEMINI_API_KEY environment variable is not set. Set it in .env before starting.", file=sys.stderr)
+    sys.exit(1)
 
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address, default_limits=[RATE_LIMIT])

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, AlertTriangle, Clock, Zap, Users, Wine, ChevronDown, ChevronUp, Bookmark, BookmarkCheck } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Clock, Zap, Users, Wine, ChevronDown, ChevronUp, Bookmark, BookmarkCheck, ShieldAlert } from "lucide-react";
 import { MedicineResult, saveToCabinet } from "@/lib/api";
 import FollowUp from "./FollowUp";
 import ShareButton from "./ShareButton";
@@ -13,13 +13,32 @@ const container = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } 
 const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
 
 function ConfidenceBanner({ confidence }: { confidence: string }) {
-  if (confidence !== "low") return null;
+  if (confidence === "high") return null;
+
+  if (confidence === "low") {
+    return (
+      <motion.div variants={item}
+        className="flex items-start gap-3 px-4 py-4 rounded-xl text-sm leading-relaxed"
+        style={{ background: "rgba(248,113,113,0.1)", border: "2px solid rgba(248,113,113,0.35)", color: "#f87171" }}>
+        <ShieldAlert className="w-5 h-5 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="font-semibold mb-0.5">Label not clearly readable</p>
+          <p style={{ color: "#fca5a5" }}>
+            The information below may be incomplete or inaccurate. Please verify with a pharmacist before taking this medicine.
+          </p>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // medium confidence
   return (
-    <div className="flex items-start gap-3 px-4 py-3 rounded-xl text-sm leading-relaxed"
-      style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", color: "#f87171" }}>
+    <motion.div variants={item}
+      className="flex items-start gap-3 px-4 py-3 rounded-xl text-sm leading-relaxed"
+      style={{ background: "rgba(34,211,238,0.07)", border: "1px solid rgba(34,211,238,0.2)", color: "#22d3ee" }}>
       <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-      We couldn&apos;t read this label clearly. Information below may be incomplete. Please consult a pharmacist.
-    </div>
+      Partially readable label — some details may be approximate. Confirm with your pharmacist if unsure.
+    </motion.div>
   );
 }
 
@@ -39,7 +58,8 @@ export default function ResultCard({ result }: ResultCardProps) {
   const [showFollowUp, setShowFollowUp] = useState(false);
 
   const confidenceColor = result.confidence === "high" ? "#34d399" : result.confidence === "medium" ? "#22d3ee" : "#f87171";
-  const confidenceBg = result.confidence === "high" ? "rgba(52,211,153,0.1)" : result.confidence === "medium" ? "rgba(34,211,238,0.1)" : "rgba(248,113,113,0.1)";
+  const confidenceBg = result.confidence === "high" ? "rgba(52,211,153,0.1)" : result.confidence === "medium" ? "rgba(34,211,238,0.1)" : "rgba(248,113,113,0.15)";
+  const confidenceBorder = result.confidence === "high" ? "rgba(52,211,153,0.3)" : result.confidence === "medium" ? "rgba(34,211,238,0.3)" : "rgba(248,113,113,0.4)";
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="rounded-2xl overflow-hidden"
@@ -59,8 +79,9 @@ export default function ResultCard({ result }: ResultCardProps) {
               </p>
             )}
           </div>
-          <span className="flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-lg"
-            style={{ background: confidenceBg, color: confidenceColor, border: `1px solid ${confidenceColor}33` }}>
+          <span className="flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-lg"
+            style={{ background: confidenceBg, color: confidenceColor, border: `1px solid ${confidenceBorder}` }}>
+            {result.confidence === "high" ? "✓ " : result.confidence === "low" ? "⚠ " : "~ "}
             {result.confidence} confidence
           </span>
         </div>
@@ -101,8 +122,9 @@ export default function ResultCard({ result }: ResultCardProps) {
           </div>
         </Section>
 
-        {result.who_should_be_careful.length > 0 && (
-          <Section icon={<Users className="w-3.5 h-3.5" />} label="Who should be careful">
+        {/* Always visible — critical safety section */}
+        <Section icon={<Users className="w-3.5 h-3.5" />} label="Who should be careful">
+          {result.who_should_be_careful.length > 0 ? (
             <ul className="space-y-1.5">
               {result.who_should_be_careful.map((who, i) => (
                 <li key={i} className="flex items-start gap-2.5">
@@ -111,8 +133,10 @@ export default function ResultCard({ result }: ResultCardProps) {
                 </li>
               ))}
             </ul>
-          </Section>
-        )}
+          ) : (
+            <p className="text-sm" style={{ color: "#6b9e8f" }}>No specific groups identified. Always consult your doctor if you have any existing conditions.</p>
+          )}
+        </Section>
 
         <Section icon={<Wine className="w-3.5 h-3.5" />} label="Safe with alcohol?">
           <div className="flex items-start gap-3 p-3.5 rounded-xl"

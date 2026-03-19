@@ -1,18 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, MessageCircle, Loader2 } from "lucide-react";
+import { Send, MessageCircle, Loader2, Trash2 } from "lucide-react";
 import { MedicineResult, askFollowUp } from "@/lib/api";
 
 interface FollowUpProps { result: MedicineResult; }
 interface QA { question: string; answer: string; }
+
+const FOLLOWUP_KEY = "medread_followup";
+
+function getStoredHistory(medicineName: string): QA[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const all = JSON.parse(localStorage.getItem(FOLLOWUP_KEY) || "{}");
+    return all[medicineName] || [];
+  } catch { return []; }
+}
+
+function saveHistory(medicineName: string, history: QA[]) {
+  try {
+    const all = JSON.parse(localStorage.getItem(FOLLOWUP_KEY) || "{}");
+    all[medicineName] = history.slice(-20); // keep last 20 Q&As per medicine
+    localStorage.setItem(FOLLOWUP_KEY, JSON.stringify(all));
+  } catch { /* ignore storage errors */ }
+}
 
 export default function FollowUp({ result }: FollowUpProps) {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<QA[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setHistory(getStoredHistory(result.medicine_name));
+    setMounted(true);
+  }, [result.medicine_name]);
 
   const medicineContext = `Medicine: ${result.medicine_name} (${result.generic_name}).
 What it is: ${result.what_is_this}.
@@ -25,18 +49,40 @@ Alcohol: ${result.alcohol_safe ? "Safe" : "Not safe"} — ${result.alcohol_reaso
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim() || loading) return;
-    const q = question.trim(); setQuestion(""); setLoading(true); setError(null);
+    const q = question.trim();
+    setQuestion("");
+    setLoading(true);
+    setError(null);
     try {
       const answer = await askFollowUp(medicineContext, q);
-      setHistory((h) => [...h, { question: q, answer }]);
+      const updated = [...history, { question: q, answer }];
+      setHistory(updated);
+      saveHistory(result.medicine_name, updated);
     } catch { setError("Couldn't get an answer. Please try again."); }
     finally { setLoading(false); }
   };
 
+  const clearHistory = () => {
+    setHistory([]);
+    saveHistory(result.medicine_name, []);
+  };
+
+  if (!mounted) return null;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm font-medium" style={{ color: "#6b9e8f" }}>
-        <MessageCircle className="w-4 h-4" />Ask a follow-up question
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-medium" style={{ color: "#6b9e8f" }}>
+          <MessageCircle className="w-4 h-4" />
+          Ask a follow-up question
+        </div>
+        {history.length > 0 && (
+          <button onClick={clearHistory}
+            className="flex items-center gap-1 text-xs transition-all"
+            style={{ color: "#2a5a48" }}>
+            <Trash2 className="w-3 h-3" /> Clear history
+          </button>
+        )}
       </div>
 
       <AnimatePresence>

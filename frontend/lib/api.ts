@@ -35,6 +35,7 @@ export async function scanMedicine(
   });
 
   if (!res.ok) {
+    if (res.status === 429) throw new Error("You've reached the hourly scan limit (10 scans/hour). Please try again in an hour.");
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || "Failed to scan medicine");
   }
@@ -53,6 +54,7 @@ export async function searchMedicine(
   });
 
   if (!res.ok) {
+    if (res.status === 429) throw new Error("You've reached the hourly search limit (10 searches/hour). Please try again in an hour.");
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || "Failed to find medicine");
   }
@@ -108,6 +110,34 @@ export function saveToCabinet(result: MedicineResult): SavedMedicine {
 export function deleteFromCabinet(id: string): void {
   const cabinet = getCabinet().filter((m) => m.id !== id);
   localStorage.setItem(CABINET_KEY, JSON.stringify(cabinet));
+}
+
+export function exportCabinet(): void {
+  const data = JSON.stringify(getCabinet(), null, 2);
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `medread-cabinet-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function importCabinet(json: string): { added: number; error?: string } {
+  try {
+    const parsed = JSON.parse(json);
+    if (!Array.isArray(parsed)) return { added: 0, error: "Invalid file format." };
+    const existing = getCabinet();
+    const existingIds = new Set(existing.map((m) => m.id));
+    const newItems = parsed.filter(
+      (m) => m.id && m.medicine_name && m.result && !existingIds.has(m.id)
+    );
+    const merged = [...newItems, ...existing];
+    localStorage.setItem(CABINET_KEY, JSON.stringify(merged));
+    return { added: newItems.length };
+  } catch {
+    return { added: 0, error: "Could not read file. Make sure it's a valid MedRead export." };
+  }
 }
 
 export function formatForWhatsApp(result: MedicineResult): string {

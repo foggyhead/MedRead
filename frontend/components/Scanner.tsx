@@ -79,7 +79,20 @@ export default function Scanner() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       setCameraStream(stream); setShowCamera(true);
-    } catch { setError("Could not access camera."); }
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError")
+          setError("Camera access denied. Please allow camera permission in your browser settings and try again.");
+        else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError")
+          setError("No camera found on this device. Please upload a photo instead.");
+        else if (err.name === "NotReadableError")
+          setError("Camera is in use by another app. Please close other apps and try again.");
+        else
+          setError("Could not start camera. Please try uploading a photo instead.");
+      } else {
+        setError("Could not start camera. Please try uploading a photo instead.");
+      }
+    }
   };
 
   const stopCamera = () => { cameraStream?.getTracks().forEach((t) => t.stop()); setCameraStream(null); setShowCamera(false); };
@@ -185,6 +198,15 @@ export default function Scanner() {
                   className="relative rounded-2xl overflow-hidden" style={{ border: "1px solid #163d32" }}>
                   <video ref={videoRef} autoPlay playsInline muted className="w-full max-h-80 object-cover bg-black" />
                   <canvas ref={canvasRef} className="hidden" />
+                  {/* Framing guide overlay */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <div className="w-4/5 h-3/5 rounded-xl"
+                      style={{ border: "2px solid rgba(52,211,153,0.7)", boxShadow: "0 0 0 9999px rgba(0,0,0,0.4)" }} />
+                    <p className="mt-3 text-xs font-medium px-3 py-1 rounded-full"
+                      style={{ background: "rgba(0,0,0,0.65)", color: "#34d399" }}>
+                      Align medicine label within frame
+                    </p>
+                  </div>
                   <div className="absolute bottom-0 left-0 right-0 p-4 flex gap-3"
                     style={{ background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)" }}>
                     <button onClick={stopCamera} className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium"

@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     siteName: "MedRead",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og",
         width: 1200,
         height: 630,
         alt: "MedRead — Medicine Label Reader",
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     title: "MedRead — Your medicine, in plain language",
     description:
       "Upload any medicine photo and get a clear, jargon-free explanation instantly.",
-    images: ["/og-image.png"],
+    images: ["/og"],
   },
   robots: {
     index: true,
