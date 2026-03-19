@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#071a14"/>
+  <rect width="512" height="512" rx="96" fill="url(#shine)"/>
+  <rect width="512" height="512" rx="96" fill="none" stroke="#163d32" stroke-width="6"/>
+
+  <!-- Subtle glow behind pill -->
+  <ellipse cx="256" cy="256" rx="160" ry="80" fill="url(#glow)" transform="rotate(-45 256 256)"/>
+
+  <!-- Pill: 320w x 128h, centered at (256,256) — x:96-416, y:192-320 -->
+  <g transform="rotate(-45 256 256)">
+    <!-- Left half — emerald -->
+    <path d="M256 192 H96 A64 64 0 0 0 96 320 H256 Z" fill="#34d399"/>
+    <!-- Right half — cyan -->
+    <path d="M256 192 H416 A64 64 0 0 1 416 320 H256 Z" fill="#22d3ee"/>
+    <!-- Center divider -->
+    <rect x="249" y="192" width="14" height="128" fill="#071a14"/>
+    <!-- Highlight shimmer on left half -->
+    <path d="M220 208 H110 A64 64 0 0 0 98 240" stroke="rgba(255,255,255,0.3)" stroke-width="12" stroke-linecap="round"/>
+  </g>
+</svg>

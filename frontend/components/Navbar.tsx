@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Pill } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -12,10 +11,7 @@ export default function Navbar() {
       style={{ borderBottom: "1px solid #163d32", background: "rgba(3,13,10,0.85)", backdropFilter: "blur(12px)" }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: "rgba(52,211,153,0.15)" }}>
-            <Pill className="w-4 h-4" style={{ color: "#34d399" }} />
-          </div>
+          <img src="/logo.svg" alt="MedRead" className="w-8 h-8 rounded-lg" />
           <span className="text-lg font-semibold" style={{ fontFamily: "Fraunces, serif", color: "#ecfdf5" }}>
             MedRead
           </span>

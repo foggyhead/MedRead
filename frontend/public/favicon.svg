@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="32" height="32" rx="7" fill="#071a14"/>
+  <rect width="32" height="32" rx="7" fill="url(#shine)"/>
+  <rect width="32" height="32" rx="7" fill="none" stroke="#163d32" stroke-width="1"/>
+
+  <!-- Pill rotated -45deg around center (16,16) -->
+  <!-- Pill: 20w x 8h, x:6-26, y:12-20 -->
+  <g transform="rotate(-45 16 16)">
+    <!-- Left half — emerald -->
+    <path d="M16 12 H6 A4 4 0 0 0 6 20 H16 Z" fill="#34d399"/>
+    <!-- Right half — cyan -->
+    <path d="M16 12 H26 A4 4 0 0 1 26 20 H16 Z" fill="#22d3ee"/>
+    <!-- Center divider -->
+    <rect x="15.25" y="12" width="1.5" height="8" fill="#071a14"/>
+    <!-- Highlight shimmer on left half -->
+    <path d="M13 13.5 H7.5 A4 4 0 0 0 6.5 15.5" stroke="rgba(255,255,255,0.35)" stroke-width="1" stroke-linecap="round"/>
+  </g>
+</svg>
