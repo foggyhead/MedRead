@@ -2,9 +2,10 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, X, Loader2, ImageIcon, Sparkles, Search } from "lucide-react";
-import { scanMedicine, searchMedicine, MedicineResult } from "@/lib/api";
+import { Camera, X, Loader2, ImageIcon, Sparkles, Search, Stethoscope } from "lucide-react";
+import { scanMedicine, searchMedicine, searchBySymptoms, MedicineResult, SymptomResult } from "@/lib/api";
 import ResultCard from "./ResultCard";
+import SymptomResultCard from "./SymptomResultCard";
 import LanguageToggle from "./LanguageToggle";
 
 const LOADING_MESSAGES = [
@@ -21,7 +22,14 @@ const SEARCH_LOADING_MESSAGES = [
   "Almost there...",
 ];
 
-type Mode = "photo" | "text";
+const SYMPTOM_LOADING_MESSAGES = [
+  "Analysing your symptoms...",
+  "Finding matching medicines...",
+  "Checking OTC availability in India...",
+  "Almost there...",
+];
+
+type Mode = "photo" | "text" | "symptoms";
 
 export default function Scanner() {
   const [mode, setMode] = useState<Mode>("photo");
@@ -36,6 +44,10 @@ export default function Scanner() {
   // Text mode state
   const [medicineName, setMedicineName] = useState("");
 
+  // Symptoms mode state
+  const [symptoms, setSymptoms] = useState("");
+  const [symptomResult, setSymptomResult] = useState<SymptomResult | null>(null);
+
   // Shared state
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(0);
@@ -46,7 +58,11 @@ export default function Scanner() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const messages = mode === "text" ? SEARCH_LOADING_MESSAGES : LOADING_MESSAGES;
+
+  const messages =
+    mode === "text" ? SEARCH_LOADING_MESSAGES :
+    mode === "symptoms" ? SYMPTOM_LOADING_MESSAGES :
+    LOADING_MESSAGES;
 
   useEffect(() => {
     if (!loading) return;
@@ -61,6 +77,7 @@ export default function Scanner() {
   const switchMode = (m: Mode) => {
     setMode(m);
     setResult(null);
+    setSymptomResult(null);
     setError(null);
   };
 
@@ -122,6 +139,15 @@ export default function Scanner() {
     finally { setLoading(false); }
   };
 
+  const handleSymptomSearch = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!symptoms.trim() || loading) return;
+    setLoading(true); setSymptomResult(null); setError(null); setLoadingMsg(0);
+    try { setSymptomResult(await searchBySymptoms(symptoms.trim(), lang)); }
+    catch (err) { setError(err instanceof Error ? err.message : "Something went wrong."); }
+    finally { setLoading(false); }
+  };
+
   const handleLangChange = async (newLang: string) => {
     setLang(newLang);
     if (result) {
@@ -132,6 +158,12 @@ export default function Scanner() {
       } catch (err) { setError(err instanceof Error ? err.message : "Failed to translate."); }
       finally { setLoading(false); }
     }
+    if (symptomResult && mode === "symptoms" && symptoms.trim()) {
+      setLoading(true); setSymptomResult(null); setLoadingMsg(0);
+      try { setSymptomResult(await searchBySymptoms(symptoms.trim(), newLang)); }
+      catch (err) { setError(err instanceof Error ? err.message : "Failed to translate."); }
+      finally { setLoading(false); }
+    }
   };
 
   const resetPhoto = () => { setFile(null); setPreview(null); setResult(null); setError(null); if (fileInputRef.current) fileInputRef.current.value = ""; };
@@ -140,9 +172,13 @@ export default function Scanner() {
     <div className="space-y-6">
       {/* Mode tabs */}
       <div className="flex rounded-2xl p-1 gap-1" style={{ background: "#071a14", border: "1px solid #163d32" }}>
-        {([["photo", ImageIcon, "Upload Photo"], ["text", Search, "Type Medicine Name"]] as const).map(([m, Icon, label]) => (
-          <button key={m} onClick={() => switchMode(m as Mode)}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all"
+        {([
+          ["photo", ImageIcon, "Photo"],
+          ["text", Search, "Search"],
+          ["symptoms", Stethoscope, "Symptoms"],
+        ] as const).map(([m, Icon, label]) => (
+          <button key={m} onClick={() => switchMode(m)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all"
             style={mode === m
               ? { background: "linear-gradient(135deg, #34d399, #22d3ee)", color: "#030d0a" }
               : { color: "#6b9e8f" }}>
@@ -152,14 +188,15 @@ export default function Scanner() {
         ))}
       </div>
 
-      {/* Language toggle */}
+      {/* Language toggle — hide for symptoms (AI handles language internally) */}
       <div className="space-y-2">
         <p className="text-sm" style={{ color: "#6b9e8f" }}>Choose your language</p>
         <LanguageToggle lang={lang} onChange={handleLangChange} loading={loading} />
       </div>
 
-      {/* TEXT MODE */}
       <AnimatePresence mode="wait">
+
+        {/* TEXT MODE */}
         {mode === "text" && (
           <motion.div key="text" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
             <form onSubmit={handleTextSearch} className="space-y-3">
@@ -182,6 +219,39 @@ export default function Scanner() {
                   style={{ background: "linear-gradient(135deg, #34d399, #22d3ee)", boxShadow: "0 0 36px rgba(52,211,153,0.2)" }}>
                   <Sparkles className="w-5 h-5" />
                   Explain This Medicine
+                </motion.button>
+              )}
+            </form>
+          </motion.div>
+        )}
+
+        {/* SYMPTOMS MODE */}
+        {mode === "symptoms" && (
+          <motion.div key="symptoms" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+            <form onSubmit={handleSymptomSearch} className="space-y-3">
+              <div>
+                <div className="relative">
+                  <Stethoscope className="absolute left-4 top-4 w-4 h-4" style={{ color: "#6b9e8f" }} />
+                  <textarea
+                    value={symptoms}
+                    onChange={(e) => { setSymptoms(e.target.value); setSymptomResult(null); setError(null); }}
+                    placeholder="Describe your symptoms... e.g. headache and mild fever since morning, runny nose, body ache"
+                    rows={3}
+                    className="w-full pl-11 pr-4 py-4 rounded-2xl text-base focus:outline-none transition-all resize-none"
+                    style={{ background: "#0c2620", border: "1px solid #163d32", color: "#ecfdf5" }}
+                    disabled={loading}
+                  />
+                </div>
+                <p className="text-xs mt-1.5" style={{ color: "#2a5a48" }}>
+                  Only over-the-counter medicines will be recommended. For serious symptoms, always see a doctor.
+                </p>
+              </div>
+              {symptoms.trim() && !loading && (
+                <motion.button type="submit" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                  className="w-full py-4 rounded-xl font-semibold text-[#030d0a] flex items-center justify-center gap-3"
+                  style={{ background: "linear-gradient(135deg, #34d399, #22d3ee)", boxShadow: "0 0 36px rgba(52,211,153,0.2)" }}>
+                  <Stethoscope className="w-5 h-5" />
+                  Find Medicines for My Symptoms
                 </motion.button>
               )}
             </form>
@@ -274,7 +344,7 @@ export default function Scanner() {
         )}
       </AnimatePresence>
 
-      {/* Loading button (shared) */}
+      {/* Loading */}
       {loading && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           className="w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-3"
@@ -297,9 +367,18 @@ export default function Scanner() {
         )}
       </AnimatePresence>
 
-      {/* Result */}
+      {/* Results */}
       <AnimatePresence>
-        {result && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}><ResultCard result={result} /></motion.div>}
+        {result && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <ResultCard result={result} />
+          </motion.div>
+        )}
+        {symptomResult && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <SymptomResultCard result={symptomResult} symptoms={symptoms} />
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );

@@ -1,5 +1,28 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+export interface PurchaseLink {
+  store: string;
+  url: string;
+  color: string;
+}
+
+export interface SymptomMedicine {
+  medicine_name: string;
+  generic_name: string;
+  what_is_this: string;
+  used_for: string[];
+  side_effects: string[];
+  who_should_be_careful: string[];
+  confidence: "low" | "medium" | "high";
+  purchase_links: PurchaseLink[];
+}
+
+export interface SymptomResult {
+  needs_doctor: boolean;
+  doctor_note: string | null;
+  medicines: SymptomMedicine[];
+}
+
 export interface MedicineResult {
   medicine_name: string;
   what_is_this: string;
@@ -57,6 +80,25 @@ export async function searchMedicine(
     if (res.status === 429) throw new Error("You've reached the hourly search limit (10 searches/hour). Please try again in an hour.");
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || "Failed to find medicine");
+  }
+
+  return res.json();
+}
+
+export async function searchBySymptoms(
+  symptoms: string,
+  lang: string = "en"
+): Promise<SymptomResult> {
+  const res = await fetch(`${API_URL}/api/symptoms`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ symptoms, lang }),
+  });
+
+  if (!res.ok) {
+    if (res.status === 429) throw new Error("You've reached the hourly limit. Please try again in an hour.");
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to get recommendations");
   }
 
   return res.json();

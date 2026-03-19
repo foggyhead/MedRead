@@ -3,6 +3,7 @@ import re
 import io
 import base64
 import httpx
+import urllib.parse
 from fastapi import APIRouter, File, UploadFile, HTTPException, Request, Form
 from pydantic import BaseModel
 from PIL import Image
@@ -279,3 +280,126 @@ async def follow_up(request: Request, body: FollowUpRequest):
         return {"answer": answer.strip()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get answer: {str(e)}")
+
+
+# ── Symptom-based medicine recommendation ──────────────────────────────────
+
+SYMPTOMS_PROMPT = """You are a helpful medicine assistant for Indian users.
+The user has these symptoms: "{symptoms}"
+
+Recommend 3-4 appropriate over-the-counter (OTC) medicines commonly available in Indian pharmacies.
+IMPORTANT: Only recommend OTC medicines. Never recommend prescription-only drugs.
+If symptoms suggest a potentially serious condition (chest pain, difficulty breathing, high fever in infant, stroke signs), set needs_doctor to true.
+
+Respond ONLY in valid JSON:
+
+{{
+  "needs_doctor": false,
+  "doctor_note": null,
+  "medicines": [
+    {{
+      "medicine_name": "Brand name commonly sold in India (e.g. Dolo 650, Crocin, Allegra)",
+      "generic_name": "Generic/chemical name in English",
+      "what_is_this": "One plain sentence in {language}",
+      "used_for": ["2-3 bullet points in {language} — why it helps these symptoms"],
+      "side_effects": ["2-3 most common side effects in {language}, plain language"],
+      "who_should_be_careful": ["Key groups in {language}: pregnant, children, diabetics, etc."],
+      "confidence": "high"
+    }}
+  ]
+}}
+
+Rules:
+- medicine_name and generic_name must stay in English.
+- All other text in {language}.
+- Rank medicines from most recommended to least.
+- If needs_doctor is true, doctor_note should be a short warning in {language}.
+- Respond ONLY with the JSON object, no markdown, no extra text."""
+
+
+def get_purchase_links(medicine_name: str) -> list[dict]:
+    """
+    Generate search-page URLs for major Indian online pharmacies.
+    To earn affiliate commissions, register at:
+      - 1mg:       https://www.1mg.com/affiliate-marketing
+      - PharmEasy: https://pharmeasy.in/affiliate
+      - Netmeds:   https://www.netmeds.com/affiliates
+    Then append your affiliate/referral parameters to the URLs below.
+    """
+    q = urllib.parse.quote(medicine_name)
+    return [
+        {
+            "store": "1mg",
+            "url": f"https://www.1mg.com/search/all?name={q}",
+            "color": "#e74c3c",
+        },
+        {
+            "store": "PharmEasy",
+            "url": f"https://pharmeasy.in/search/all?name={q}",
+            "color": "#2ecc71",
+        },
+        {
+            "store": "Netmeds",
+            "url": f"https://www.netmeds.com/catalogsearch/result?q={q}",
+            "color": "#3498db",
+        },
+    ]
+
+
+class SymptomsRequest(BaseModel):
+    symptoms: str
+    lang: Optional[str] = "en"
+
+
+@router.post("/api/symptoms")
+async def recommend_by_symptoms(request: Request, body: SymptomsRequest):
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="API key not configured.")
+    if not body.symptoms.strip():
+        raise HTTPException(status_code=400, detail="Symptoms are required.")
+    if len(body.symptoms) > 500:
+        raise HTTPException(status_code=400, detail="Symptoms text too long.")
+
+    language = LANGUAGE_NAMES.get(body.lang or "en", "English")
+    prompt = SYMPTOMS_PROMPT.format(symptoms=body.symptoms.strip(), language=language)
+
+    try:
+        print(f"Symptom search: {body.symptoms[:80]} in {language}")
+        text = await call_openrouter(prompt)
+        print("Response:", text[:200])
+        result = extract_json(text)
+
+        # Validate and attach purchase links to each medicine
+        medicines = result.get("medicines", [])
+        if not isinstance(medicines, list):
+            medicines = []
+
+        required_fields = ["medicine_name", "generic_name", "what_is_this",
+                           "used_for", "side_effects", "who_should_be_careful", "confidence"]
+        cleaned = []
+        for med in medicines[:4]:
+            for field in required_fields:
+                if field not in med:
+                    med[field] = None
+            for list_field in ["used_for", "side_effects", "who_should_be_careful"]:
+                if not isinstance(med.get(list_field), list):
+                    med[list_field] = []
+            if med.get("confidence") not in ("low", "medium", "high"):
+                med["confidence"] = "high"
+            # Attach purchase links
+            med["purchase_links"] = get_purchase_links(med["medicine_name"] or "")
+            cleaned.append(med)
+
+        return {
+            "needs_doctor": bool(result.get("needs_doctor", False)),
+            "doctor_note": result.get("doctor_note"),
+            "medicines": cleaned,
+        }
+
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=422, detail="Could not process symptom information. Please try again.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Symptom search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Symptom search failed: {str(e)}")
