@@ -74,14 +74,12 @@ export async function GET() {
             fontWeight: "700",
             lineHeight: "1.1",
             marginBottom: "28px",
-            background: "linear-gradient(135deg, #34d399, #22d3ee)",
-            WebkitBackgroundClip: "text",
-            color: "transparent",
+            color: "#34d399",
           }}
         >
           Your medicine,
           <br />
-          in plain language.
+          <span style={{ color: "#22d3ee" }}>in plain language.</span>
         </div>
 
         {/* Subtitle */}
@@ -135,7 +133,7 @@ export async function GET() {
             color: "#2a5a48",
           }}
         >
-          medread.in
+          med-readin.vercel.app
         </div>
       </div>
     ),
