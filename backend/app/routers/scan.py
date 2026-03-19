@@ -187,9 +187,80 @@ async def scan_medicine_hindi(request: Request, file: UploadFile = File(...)):
     return await run_scan(image_bytes, "hi")
 
 
+class SearchRequest(BaseModel):
+    name: str
+    lang: Optional[str] = "en"
+
+
 class FollowUpRequest(BaseModel):
     medicine_context: str
     question: str
+
+
+@router.post("/api/search")
+async def search_medicine(request: Request, body: SearchRequest):
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="API key not configured.")
+    if not body.name.strip():
+        raise HTTPException(status_code=400, detail="Medicine name is required.")
+    if len(body.name) > 200:
+        raise HTTPException(status_code=400, detail="Medicine name too long.")
+
+    language = LANGUAGE_NAMES.get(body.lang or "en", "English")
+    prompt = f"""You are a medicine information assistant for Indian users.
+The user wants to know about this medicine: "{body.name}"
+
+Provide accurate information about this medicine. Respond ONLY in valid JSON with these exact keys:
+
+{{
+  "medicine_name": "Correct full brand/generic name",
+  "what_is_this": "One plain sentence in {language}. What this medicine is.",
+  "used_for": ["3-5 bullet points in {language} about what it treats"],
+  "how_to_take": "Typical dosage and timing in {language}",
+  "side_effects": ["Top 3-4 common side effects in {language}, plain language"],
+  "who_should_be_careful": ["Specific groups in {language} who should be cautious"],
+  "alcohol_safe": true or false,
+  "alcohol_reason": "One line in {language} about alcohol interaction",
+  "generic_name": "Generic/chemical name in English",
+  "confidence": "high"
+}}
+
+Rules:
+- Respond entirely in {language} except medicine_name and generic_name.
+- Use plain, friendly language. No jargon.
+- If the medicine name is unclear or unknown, set confidence to "low" and fill what you can.
+- NEVER make up information. If unsure about a field, use null.
+- Respond ONLY with the JSON object, no markdown, no extra text."""
+
+    try:
+        print(f"Searching medicine: {body.name} in {language}")
+        text = await call_openrouter(prompt)
+        print("Response:", text[:200])
+        result = extract_json(text)
+
+        required = ["medicine_name", "what_is_this", "used_for", "how_to_take",
+                    "side_effects", "who_should_be_careful", "alcohol_safe",
+                    "alcohol_reason", "generic_name", "confidence"]
+        for field in required:
+            if field not in result:
+                result[field] = None
+
+        for field in ["used_for", "side_effects", "who_should_be_careful"]:
+            if not isinstance(result.get(field), list):
+                result[field] = []
+
+        if result.get("confidence") not in ("low", "medium", "high"):
+            result["confidence"] = "high"
+
+        return result
+
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=422, detail="Could not find information for this medicine.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
 @router.post("/api/followup")

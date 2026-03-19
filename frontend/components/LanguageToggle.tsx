@@ -1,11 +1,5 @@
 "use client";
 
-interface LanguageToggleProps {
-  lang: string;
-  onChange: (lang: string) => void;
-  loading?: boolean;
-}
-
 const LANGUAGES = [
   { code: "en", label: "English" },
   { code: "hi", label: "हिंदी" },
@@ -20,24 +14,17 @@ const LANGUAGES = [
   { code: "or", label: "ଓଡ଼ିଆ" },
 ];
 
-export default function LanguageToggle({
-  lang,
-  onChange,
-  loading,
-}: LanguageToggleProps) {
+interface LanguageToggleProps { lang: string; onChange: (lang: string) => void; loading?: boolean; }
+
+export default function LanguageToggle({ lang, onChange, loading }: LanguageToggleProps) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {LANGUAGES.map(({ code, label }) => (
-        <button
-          key={code}
-          onClick={() => onChange(code)}
-          disabled={loading}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
-            lang === code
-              ? "bg-[#7c6af7] text-white border-[#7c6af7]"
-              : "bg-transparent text-[#888888] border-[#2a2a2a] hover:text-[#f0f0f0] hover:border-[#7c6af7]/40"
-          } disabled:opacity-50`}
-        >
+        <button key={code} onClick={() => onChange(code)} disabled={loading}
+          className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all border disabled:opacity-50"
+          style={lang === code
+            ? { background: "rgba(52,211,153,0.15)", color: "#34d399", borderColor: "rgba(52,211,153,0.3)" }
+            : { background: "transparent", color: "#6b9e8f", borderColor: "#163d32" }}>
           {label}
         </button>
       ))}

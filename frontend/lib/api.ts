@@ -42,6 +42,24 @@ export async function scanMedicine(
   return res.json();
 }
 
+export async function searchMedicine(
+  name: string,
+  lang: string = "en"
+): Promise<MedicineResult> {
+  const res = await fetch(`${API_URL}/api/search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, lang }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to find medicine");
+  }
+
+  return res.json();
+}
+
 export async function askFollowUp(
   medicineContext: string,
   question: string
