@@ -183,11 +183,11 @@ export default function Scanner() {
           ["symptoms", Stethoscope, "Symptoms"],
         ] as const).map(([m, Icon, label]) => (
           <button key={m} onClick={() => switchMode(m)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all"
+            className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all"
             style={mode === m
               ? { background: "linear-gradient(135deg, #34d399, #22d3ee)", color: "#030d0a" }
               : { color: "#6b9e8f" }}>
-            <Icon className="w-4 h-4" />
+            <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
             {label}
           </button>
         ))}
@@ -302,7 +302,7 @@ export default function Scanner() {
                   animate={{ scale: dragging ? 1.02 : 1 }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   onClick={() => fileInputRef.current?.click()}
-                  className="rounded-2xl border-2 border-dashed cursor-pointer p-12 text-center transition-all"
+                  className="rounded-2xl border-2 border-dashed cursor-pointer p-8 sm:p-12 text-center transition-all"
                   style={{ borderColor: dragging ? "#34d399" : "#163d32", background: dragging ? "rgba(52,211,153,0.05)" : "rgba(52,211,153,0.01)" }}>
                   <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,.heic"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} className="hidden" />

@@ -78,7 +78,7 @@ export default function LandingPage() {
                 Free · Private · No sign-up required
               </div>
 
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-medium leading-[1.05] tracking-tight mb-6"
+              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-medium leading-[1.05] tracking-tight mb-6"
                 style={{ fontFamily: "Fraunces, serif", color: "#ecfdf5" }}>
                 Understand any medicine
                 <br />
