@@ -1,12 +1,10 @@
 import json
 import re
-import io
 import base64
 import httpx
 import urllib.parse
 from fastapi import APIRouter, File, UploadFile, HTTPException, Request, Form
 from pydantic import BaseModel
-from PIL import Image
 from typing import Optional
 
 from app.config import GEMINI_API_KEY, MAX_FILE_SIZE, ALLOWED_MIME_TYPES, AFFILIATE_1MG, AFFILIATE_PHARMEASY, AFFILIATE_NETMEDS
@@ -78,23 +76,19 @@ def extract_json(text: str) -> dict:
     return json.loads(text)
 
 
-def image_to_base64(image_bytes: bytes) -> tuple[str, str]:
-    img = Image.open(io.BytesIO(image_bytes))
-    buf = io.BytesIO()
-    fmt = img.format or "JPEG"
-    if fmt not in ("JPEG", "PNG", "WEBP"):
-        fmt = "JPEG"
-    img.save(buf, format=fmt)
-    b64 = base64.b64encode(buf.getvalue()).decode()
-    mime = f"image/{fmt.lower()}"
+def image_to_base64(image_bytes: bytes, content_type: str = "image/jpeg") -> tuple[str, str]:
+    mime = content_type.lower().split(";")[0].strip()
+    if mime not in ("image/jpeg", "image/png", "image/webp"):
+        mime = "image/jpeg"
+    b64 = base64.b64encode(image_bytes).decode()
     return b64, mime
 
 
-async def call_openrouter(prompt: str, image_bytes: bytes | None = None) -> str:
+async def call_openrouter(prompt: str, image_bytes: bytes | None = None, content_type: str = "image/jpeg") -> str:
     content = [{"type": "text", "text": prompt}]
 
     if image_bytes:
-        b64, mime = image_to_base64(image_bytes)
+        b64, mime = image_to_base64(image_bytes, content_type)
         content.append({
             "type": "image_url",
             "image_url": {"url": f"data:{mime};base64,{b64}"},
@@ -132,7 +126,7 @@ async def validate_image(file: UploadFile) -> bytes:
     return content
 
 
-async def run_scan(image_bytes: bytes, lang: str) -> dict:
+async def run_scan(image_bytes: bytes, lang: str, content_type: str = "image/jpeg") -> dict:
     if not GEMINI_API_KEY:
         raise HTTPException(status_code=500, detail="API key not configured.")
 
@@ -141,7 +135,7 @@ async def run_scan(image_bytes: bytes, lang: str) -> dict:
 
     try:
         print(f"Scanning in {language}...")
-        text = await call_openrouter(prompt, image_bytes)
+        text = await call_openrouter(prompt, image_bytes, content_type)
         print("Response:", text[:200])
         result = extract_json(text)
 
@@ -178,14 +172,14 @@ async def scan_medicine(
     lang: Optional[str] = Form(default="en"),
 ):
     image_bytes = await validate_image(file)
-    return await run_scan(image_bytes, lang or "en")
+    return await run_scan(image_bytes, lang or "en", file.content_type or "image/jpeg")
 
 
 # Keep old hindi endpoint for backward compat
 @router.post("/api/scan-hindi")
 async def scan_medicine_hindi(request: Request, file: UploadFile = File(...)):
     image_bytes = await validate_image(file)
-    return await run_scan(image_bytes, "hi")
+    return await run_scan(image_bytes, "hi", file.content_type or "image/jpeg")
 
 
 class SearchRequest(BaseModel):
