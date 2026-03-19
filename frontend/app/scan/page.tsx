@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
-import Disclaimer from "@/components/Disclaimer";
+import Footer from "@/components/Footer";
 import Scanner from "@/components/Scanner";
 import { Camera, Search, Stethoscope } from "lucide-react";
 
@@ -73,9 +73,7 @@ export default function ScanPage() {
           </Suspense>
         </div>
       </main>
-      <footer style={{ borderTop: "1px solid #163d32" }}>
-        <Disclaimer />
-      </footer>
+      <Footer />
     </div>
   );
 }

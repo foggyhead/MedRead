@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
-import Disclaimer from "@/components/Disclaimer";
+import Footer from "@/components/Footer";
 import CabinetClient from "./CabinetClient";
 
 export const metadata: Metadata = {
@@ -27,9 +27,7 @@ export default function CabinetPage() {
           <CabinetClient />
         </div>
       </main>
-      <footer style={{ borderTop: "1px solid #163d32" }}>
-        <Disclaimer />
-      </footer>
+      <Footer />
     </div>
   );
 }

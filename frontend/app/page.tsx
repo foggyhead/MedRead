@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import Disclaimer from "@/components/Disclaimer";
+import Footer from "@/components/Footer";
 import {
   ArrowRight, Camera, Search, Stethoscope, Globe, MessageCircle,
   Shield, Star, ShoppingCart, Bookmark, ChevronRight,
@@ -433,18 +433,7 @@ export default function LandingPage() {
 
         </main>
 
-        <footer style={{ borderTop: "1px solid #163d32", background: "#071a14" }}>
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm" style={{ color: "#2a5a48" }}>
-              © 2026 MedRead · Built by Harsha · Not a substitute for medical advice.
-            </p>
-            <div className="flex items-center gap-6 text-sm" style={{ color: "#2a5a48" }}>
-              <Link href="/scan" className="hover:text-[#6b9e8f] transition-colors">Scan</Link>
-              <Link href="/cabinet" className="hover:text-[#6b9e8f] transition-colors">Cabinet</Link>
-            </div>
-          </div>
-          <Disclaimer />
-        </footer>
+        <Footer />
       </div>
     </>
   );
