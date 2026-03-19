@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AlertTriangle, ShieldAlert, ShoppingCart, CheckCircle2, Zap, Users, ExternalLink } from "lucide-react";
-import { SymptomResult, SymptomMedicine } from "@/lib/api";
+import { AlertTriangle, ShieldAlert, ShoppingCart, CheckCircle2, Zap, Users, ExternalLink, Share2 } from "lucide-react";
+import { SymptomResult, SymptomMedicine, formatSymptomsForWhatsApp } from "@/lib/api";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
 const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
@@ -183,12 +183,21 @@ export default function SymptomResultCard({ result, symptoms }: SymptomResultCar
         <MedicineCard key={i} med={med} rank={i + 1} />
       ))}
 
-      {/* Disclaimer */}
-      <motion.div variants={item} className="px-4 py-3 rounded-xl text-xs leading-relaxed"
-        style={{ background: "rgba(107,158,143,0.06)", border: "1px solid rgba(107,158,143,0.15)", color: "#6b9e8f" }}>
-        <strong style={{ color: "#ecfdf5" }}>Disclaimer:</strong> These are general OTC suggestions only.
-        Always read the medicine label, follow dosage instructions, and consult a doctor or pharmacist before use —
-        especially if you have existing conditions or are taking other medicines.
+      {/* Share + Disclaimer */}
+      <motion.div variants={item} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <button
+          onClick={() => {
+            const text = formatSymptomsForWhatsApp(symptoms, result.medicines);
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+          }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex-shrink-0"
+          style={{ border: "1px solid #163d32", color: "#6b9e8f" }}>
+          <Share2 className="w-4 h-4" />
+          Share on WhatsApp
+        </button>
+        <p className="text-xs leading-relaxed" style={{ color: "#2a5a48" }}>
+          These are general OTC suggestions only. Always consult a doctor or pharmacist before use.
+        </p>
       </motion.div>
     </motion.div>
   );

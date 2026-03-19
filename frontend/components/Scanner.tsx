@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, X, Loader2, ImageIcon, Sparkles, Search, Stethoscope } from "lucide-react";
-import { scanMedicine, searchMedicine, searchBySymptoms, MedicineResult, SymptomResult } from "@/lib/api";
+import { scanMedicine, searchMedicine, searchBySymptoms, saveRecentSearch, MedicineResult, SymptomResult } from "@/lib/api";
 import ResultCard from "./ResultCard";
 import SymptomResultCard from "./SymptomResultCard";
 import LanguageToggle from "./LanguageToggle";
@@ -35,6 +35,7 @@ type Mode = "photo" | "text" | "symptoms";
 export default function Scanner() {
   const searchParams = useSearchParams();
   const initialMode = (searchParams.get("mode") as Mode) || "photo";
+  const initialQuery = searchParams.get("q") || "";
   const [mode, setMode] = useState<Mode>(
     ["photo", "text", "symptoms"].includes(initialMode) ? initialMode : "photo"
   );
@@ -46,11 +47,11 @@ export default function Scanner() {
   const [showCamera, setShowCamera] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
 
-  // Text mode state
-  const [medicineName, setMedicineName] = useState("");
+  // Text mode state — pre-fill from ?q= param (used by Recent Searches)
+  const [medicineName, setMedicineName] = useState(initialMode === "text" ? initialQuery : "");
 
   // Symptoms mode state
-  const [symptoms, setSymptoms] = useState("");
+  const [symptoms, setSymptoms] = useState(initialMode === "symptoms" ? initialQuery : "");
   const [symptomResult, setSymptomResult] = useState<SymptomResult | null>(null);
 
   // Shared state
@@ -139,7 +140,11 @@ export default function Scanner() {
     e?.preventDefault();
     if (!medicineName.trim() || loading) return;
     setLoading(true); setResult(null); setError(null); setLoadingMsg(0);
-    try { setResult(await searchMedicine(medicineName.trim(), lang)); }
+    try {
+      const res = await searchMedicine(medicineName.trim(), lang);
+      setResult(res);
+      saveRecentSearch("text", medicineName.trim(), res.medicine_name);
+    }
     catch (err) { setError(err instanceof Error ? err.message : "Something went wrong."); }
     finally { setLoading(false); }
   };
@@ -148,7 +153,11 @@ export default function Scanner() {
     e?.preventDefault();
     if (!symptoms.trim() || loading) return;
     setLoading(true); setSymptomResult(null); setError(null); setLoadingMsg(0);
-    try { setSymptomResult(await searchBySymptoms(symptoms.trim(), lang)); }
+    try {
+      const res = await searchBySymptoms(symptoms.trim(), lang);
+      setSymptomResult(res);
+      saveRecentSearch("symptoms", symptoms.trim(), res.medicines[0]?.medicine_name || symptoms.trim());
+    }
     catch (err) { setError(err instanceof Error ? err.message : "Something went wrong."); }
     finally { setLoading(false); }
   };

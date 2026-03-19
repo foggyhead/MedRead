@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import RecentSearches from "@/components/RecentSearches";
 import {
   ArrowRight, Camera, Search, Stethoscope, Globe, MessageCircle,
   Shield, Star, ShoppingCart, Bookmark, ChevronRight,
@@ -182,6 +183,9 @@ export default function LandingPage() {
               </p>
             </div>
           </section>
+
+          {/* ── RECENTLY SEARCHED ─────────────────────────────────────────── */}
+          <RecentSearches />
 
           {/* ── WHAT YOU GET ──────────────────────────────────────────────── */}
           <section style={{ borderTop: "1px solid #163d32", background: "#071a14" }}>

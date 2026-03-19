@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from PIL import Image
 from typing import Optional
 
-from app.config import GEMINI_API_KEY, MAX_FILE_SIZE, ALLOWED_MIME_TYPES
+from app.config import GEMINI_API_KEY, MAX_FILE_SIZE, ALLOWED_MIME_TYPES, AFFILIATE_1MG, AFFILIATE_PHARMEASY, AFFILIATE_NETMEDS
 
 router = APIRouter()
 
@@ -320,29 +320,33 @@ Rules:
 def get_purchase_links(medicine_name: str) -> list[dict]:
     """
     Generate search-page URLs for major Indian online pharmacies.
-    To earn affiliate commissions, register at:
-      - 1mg:       https://www.1mg.com/affiliate-marketing
-      - PharmEasy: https://pharmeasy.in/affiliate
-      - Netmeds:   https://www.netmeds.com/affiliates
-    Then append your affiliate/referral parameters to the URLs below.
+    Set AFFILIATE_1MG, AFFILIATE_PHARMEASY, AFFILIATE_NETMEDS in .env
+    to earn commissions on purchases. Links work without IDs too.
     """
     q = urllib.parse.quote(medicine_name)
+
+    url_1mg = f"https://www.1mg.com/search/all?name={q}"
+    if AFFILIATE_1MG:
+        url_1mg += f"&utm_source=medread&utm_medium=affiliate&ref={AFFILIATE_1MG}"
+    else:
+        url_1mg += "&utm_source=medread&utm_medium=referral"
+
+    url_pharmeasy = f"https://pharmeasy.in/search/all?name={q}"
+    if AFFILIATE_PHARMEASY:
+        url_pharmeasy += f"&utm_source=medread&utm_medium=affiliate&ref={AFFILIATE_PHARMEASY}"
+    else:
+        url_pharmeasy += "&utm_source=medread&utm_medium=referral"
+
+    url_netmeds = f"https://www.netmeds.com/catalogsearch/result?q={q}"
+    if AFFILIATE_NETMEDS:
+        url_netmeds += f"&utm_source=medread&utm_medium=affiliate&ref={AFFILIATE_NETMEDS}"
+    else:
+        url_netmeds += "&utm_source=medread&utm_medium=referral"
+
     return [
-        {
-            "store": "1mg",
-            "url": f"https://www.1mg.com/search/all?name={q}",
-            "color": "#e74c3c",
-        },
-        {
-            "store": "PharmEasy",
-            "url": f"https://pharmeasy.in/search/all?name={q}",
-            "color": "#2ecc71",
-        },
-        {
-            "store": "Netmeds",
-            "url": f"https://www.netmeds.com/catalogsearch/result?q={q}",
-            "color": "#3498db",
-        },
+        {"store": "1mg",       "url": url_1mg,       "color": "#e74c3c"},
+        {"store": "PharmEasy", "url": url_pharmeasy,  "color": "#2ecc71"},
+        {"store": "Netmeds",   "url": url_netmeds,    "color": "#3498db"},
     ]
 
 

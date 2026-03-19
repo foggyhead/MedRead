@@ -182,6 +182,43 @@ export function importCabinet(json: string): { added: number; error?: string } {
   }
 }
 
+// ── Recent searches ─────────────────────────────────────────────────────────
+const RECENT_KEY = "medread_recent";
+
+export interface RecentSearch {
+  id: string;
+  type: "text" | "symptoms";
+  query: string;
+  result_name: string;
+  searched_at: string;
+}
+
+export function getRecentSearches(): RecentSearch[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); }
+  catch { return []; }
+}
+
+export function saveRecentSearch(type: "text" | "symptoms", query: string, resultName: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const existing = getRecentSearches().filter(
+      (s) => !(s.type === type && s.query.toLowerCase() === query.toLowerCase())
+    );
+    const updated = [
+      { id: Date.now().toString(), type, query, result_name: resultName, searched_at: new Date().toISOString() },
+      ...existing,
+    ].slice(0, 8);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(updated));
+  } catch { /* ignore */ }
+}
+
+export function clearRecentSearches(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(RECENT_KEY);
+}
+
+// ── WhatsApp formatters ──────────────────────────────────────────────────────
 export function formatForWhatsApp(result: MedicineResult): string {
   const lines = [
     `💊 *${result.medicine_name}*`,
@@ -204,4 +241,23 @@ export function formatForWhatsApp(result: MedicineResult): string {
     `_Explained by MedRead.in — Not a substitute for medical advice._`,
   ];
   return lines.filter((l) => l !== undefined).join("\n");
+}
+
+export function formatSymptomsForWhatsApp(symptoms: string, medicines: SymptomMedicine[]): string {
+  const lines: string[] = [
+    `🩺 *Medicines for: "${symptoms}"*`,
+    `_Recommended by MedRead.in_`,
+    "",
+  ];
+  medicines.forEach((med, i) => {
+    lines.push(`*${i + 1}. ${med.medicine_name}*${med.generic_name ? ` _(${med.generic_name})_` : ""}`);
+    lines.push(med.what_is_this);
+    if (med.side_effects.length > 0)
+      lines.push(`⚠️ Side effects: ${med.side_effects.slice(0, 2).join(", ")}`);
+    if (med.purchase_links.length > 0)
+      lines.push(`🛒 Buy on: ${med.purchase_links.map((l) => l.store).join(" · ")}`);
+    lines.push("");
+  });
+  lines.push(`_Not a substitute for medical advice. Always consult your doctor or pharmacist._`);
+  return lines.join("\n");
 }
