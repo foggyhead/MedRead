@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://med-readin.vercel.app"),
+  metadataBase: new URL("https://med-read-by-harsha.vercel.app"),
   title: {
     default: "MedRead — Medicine Label Reader in Plain Language",
     template: "%s | MedRead",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     title: "MedRead — Your medicine, in plain language",
     description:
       "Point. Scan. Understand. Upload any medicine photo and get a clear, jargon-free explanation instantly.",
-    url: "https://med-readin.vercel.app",
+    url: "https://med-read-by-harsha.vercel.app",
     siteName: "MedRead",
     images: [
       {

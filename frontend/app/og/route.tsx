@@ -133,7 +133,7 @@ export async function GET() {
             color: "#2a5a48",
           }}
         >
-          med-readin.vercel.app
+          med-read-by-harsha.vercel.app
         </div>
       </div>
     ),
