@@ -3,11 +3,18 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, X, Loader2, ImageIcon, Sparkles, Search, Stethoscope } from "lucide-react";
+import { Camera, X, Loader2, ImageIcon, Sparkles, Search, Stethoscope, Mic } from "lucide-react";
 import { scanMedicine, searchMedicine, searchBySymptoms, saveRecentSearch, MedicineResult, SymptomResult } from "@/lib/api";
 import ResultCard from "./ResultCard";
 import SymptomResultCard from "./SymptomResultCard";
 import LanguageToggle from "./LanguageToggle";
+
+// Map app lang codes → BCP-47 for SpeechRecognition
+const LANG_LOCALE: Record<string, string> = {
+  en: "en-IN", hi: "hi-IN", bn: "bn-IN", ta: "ta-IN", te: "te-IN",
+  mr: "mr-IN", gu: "gu-IN", kn: "kn-IN", ml: "ml-IN", pa: "pa-IN",
+  ur: "ur-PK", or: "or-IN",
+};
 
 const LOADING_MESSAGES = [
   "Reading label...",
@@ -61,9 +68,35 @@ export default function Scanner() {
   const [error, setError] = useState<string | null>(null);
   const [lang, setLang] = useState<string>("en");
 
+  const [listening, setListening] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const startVoice = (target: "text" | "symptoms") => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { setError("Voice search isn't supported in this browser. Try Chrome or Safari."); return; }
+    if (listening) { recognitionRef.current?.stop(); return; }
+    const rec = new SR();
+    recognitionRef.current = rec;
+    rec.lang = LANG_LOCALE[lang] || "en-IN";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    rec.onstart = () => setListening(true);
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      const transcript = e.results[0][0].transcript;
+      if (target === "text") { setMedicineName(transcript); setResult(null); }
+      else { setSymptoms(transcript); setSymptomResult(null); }
+    };
+    rec.start();
+  };
 
   const messages =
     mode === "text" ? SEARCH_LOADING_MESSAGES :
@@ -221,11 +254,19 @@ export default function Scanner() {
                   value={medicineName}
                   onChange={(e) => { setMedicineName(e.target.value); setResult(null); setError(null); }}
                   placeholder="e.g. Paracetamol, Dolo 650, Metformin..."
-                  className="w-full pl-11 pr-4 py-4 rounded-2xl text-base focus:outline-none transition-all"
+                  className="w-full pl-11 pr-12 py-4 rounded-2xl text-base focus:outline-none transition-all"
                   style={{ background: "#0c2620", border: "1px solid #163d32", color: "#ecfdf5" }}
                   disabled={loading}
                   autoFocus
                 />
+                <button type="button" onClick={() => startVoice("text")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                  style={{ background: listening ? "rgba(52,211,153,0.2)" : "rgba(52,211,153,0.08)" }}
+                  title="Tap to speak">
+                  {listening
+                    ? <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 0.8 }}><Mic className="w-4 h-4" style={{ color: "#34d399" }} /></motion.div>
+                    : <Mic className="w-4 h-4" style={{ color: "#6b9e8f" }} />}
+                </button>
               </div>
               {medicineName.trim() && !loading && (
                 <motion.button type="submit" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
@@ -251,10 +292,18 @@ export default function Scanner() {
                     onChange={(e) => { setSymptoms(e.target.value); setSymptomResult(null); setError(null); }}
                     placeholder="Describe your symptoms... e.g. headache and mild fever since morning, runny nose, body ache"
                     rows={3}
-                    className="w-full pl-11 pr-4 py-4 rounded-2xl text-base focus:outline-none transition-all resize-none"
+                    className="w-full pl-11 pr-12 py-4 rounded-2xl text-base focus:outline-none transition-all resize-none"
                     style={{ background: "#0c2620", border: "1px solid #163d32", color: "#ecfdf5" }}
                     disabled={loading}
                   />
+                  <button type="button" onClick={() => startVoice("symptoms")}
+                    className="absolute right-3 top-3 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                    style={{ background: listening ? "rgba(52,211,153,0.2)" : "rgba(52,211,153,0.08)" }}
+                    title="Tap to speak">
+                    {listening
+                      ? <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 0.8 }}><Mic className="w-4 h-4" style={{ color: "#34d399" }} /></motion.div>
+                      : <Mic className="w-4 h-4" style={{ color: "#6b9e8f" }} />}
+                  </button>
                 </div>
                 <p className="text-xs mt-1.5" style={{ color: "#2a5a48" }}>
                   Only over-the-counter medicines will be recommended. For serious symptoms, always see a doctor.
